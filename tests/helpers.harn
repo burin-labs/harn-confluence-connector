@@ -1,0 +1,45 @@
+import { activate, methods, payload_schema, provider_id } from "../src/lib"
+
+pub fn assert_confluence_interface() {
+  require provider_id() == "confluence", "provider id"
+  require len(methods()) >= 10, "method surface"
+  require payload_schema().harn_schema_name == "ConfluenceEventPayload", "payload schema name"
+  let active = activate(
+    [
+      {id: "confluence.webhook", kind: "webhook", jwt_required: true},
+      {
+        id: "confluence.search",
+        kind: "poll",
+        poll: {cql: "type=page", since: "2026-07-06T00:00:00Z"},
+        access_token: "secret_access",
+        site_base_url: "https://example.atlassian.net",
+      },
+    ],
+  )
+  require active.bindings == 2, "activation returns binding count"
+}
+
+/** Build a representative Confluence Cloud page webhook body. */
+pub fn confluence_page_webhook_body(event = "page_created") {
+  return json_stringify(
+    {
+      timestamp: 1471926079631,
+      event: event,
+      userAccountId: "ff80808154510724015451074c160001",
+      accountType: "customer",
+      page: {
+        creatorAccountId: "ff80808154510724015451074c160001",
+        spaceKey: "DOCS",
+        modificationDate: 1471926079631,
+        lastModifierAccountId: "ff80808154510724015451074c160001",
+        self: "https://example.atlassian.net/wiki/display/DOCS/Report",
+        id: 16777227,
+        title: "Report",
+      },
+    },
+  )
+}
+
+pub fn confluence_jwt_headers() {
+  return {authorization: "JWT fixture.jwt.token"}
+}

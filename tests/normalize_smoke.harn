@@ -1,0 +1,38 @@
+import { init, normalize_inbound, shutdown } from "../src/lib"
+import { expect, expect_eq } from "./assertions"
+import {
+  assert_confluence_interface,
+  confluence_jwt_headers,
+  confluence_page_webhook_body,
+} from "./helpers"
+
+pipeline default() {
+  assert_confluence_interface()
+  let body = confluence_page_webhook_body()
+  let event = normalize_inbound({body_text: body, headers: confluence_jwt_headers(), jwt_required: true})
+  expect_eq(event.type, "event", "Confluence webhook envelope type")
+  expect_eq(event.event.kind, "confluence.webhook.page_created", "Confluence event kind")
+  expect_eq(event.event.auth_status.state, "present", "JWT auth header recorded")
+  expect_eq(event.event.payload.provider, "confluence", "payload provider")
+  expect_eq(event.event.payload.page_id, "16777227", "page id")
+  expect_eq(event.event.payload.space_key, "DOCS", "space key")
+  expect_eq(event.event.payload.removed, false, "created is not removed")
+  expect(event.event.dedupe_key.contains("1471926079631"), "dedupe key includes timestamp")
+  expect_eq(event.event.source_refs[0].kind, "confluence_page", "source ref kind")
+  shutdown()
+  let unsigned = normalize_inbound({body: confluence_page_webhook_body("page_removed")})
+  expect_eq(unsigned.type, "event", "unsigned webhook can be accepted when JWT is not required")
+  expect_eq(unsigned.event.auth_status.state, "unsigned", "unsigned state")
+  expect_eq(unsigned.event.payload.removed, true, "removed event is removed")
+  init({jwt_required: true})
+  let missing_jwt = normalize_inbound({body_text: body})
+  expect_eq(missing_jwt.type, "reject", "missing JWT rejects when required")
+  expect_eq(missing_jwt.reject.status, 401, "missing JWT status")
+  let bad_scheme = normalize_inbound({body_text: body, headers: {authorization: "Bearer nope"}})
+  expect_eq(bad_scheme.type, "reject", "bad auth scheme rejects")
+  expect_eq(bad_scheme.reject.code, "invalid_authorization", "bad auth code")
+  shutdown()
+  let missing = normalize_inbound({body_text: "{}", headers: confluence_jwt_headers()})
+  expect_eq(missing.type, "reject", "missing event rejects")
+  expect_eq(missing.reject.status, 400, "missing event status")
+}

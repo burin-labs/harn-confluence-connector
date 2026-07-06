@@ -1,0 +1,65 @@
+[package]
+name = "harn-confluence-connector"
+version = "0.1.0"
+description = "Pure-Harn Confluence connector for page artifacts, attachments, webhooks, polling, and outbound API dispatch."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/burin-labs/harn-confluence-connector"
+harn = ">=0.9,<0.10"
+docs_url = "README.md"
+provenance = "https://github.com/burin-labs/harn-confluence-connector/releases/tag/v0.1.0"
+
+[exports]
+default = "src/lib.harn"
+
+[[providers]]
+id = "confluence"
+connector = { harn = "src/lib.harn" }
+capabilities = ["webhook", "oauth", "pagination"]
+
+[providers.oauth]
+authorization_endpoint = "https://auth.atlassian.com/authorize"
+token_endpoint = "https://auth.atlassian.com/oauth/token"
+scopes = "read:page:confluence read:attachment:confluence write:page:confluence"
+token_endpoint_auth_method = "client_secret_post"
+
+[providers.setup]
+auth_type = "oauth2"
+flow = "browser"
+required_scopes = ["read:page:confluence", "read:attachment:confluence", "write:page:confluence"]
+required_secrets = ["confluence/access-token", "confluence/site-base-url"]
+setup_command = ["harn", "connect", "confluence"]
+validation_command = ["harn", "connect", "status", "--connector", "confluence", "--json"]
+
+[[providers.setup.health_checks]]
+id = "access-token"
+kind = "secret"
+secret = "confluence/access-token"
+
+[[providers.setup.health_checks]]
+id = "site-base-url"
+kind = "secret"
+secret = "confluence/site-base-url"
+
+[providers.setup.recovery]
+missing_auth = "Store confluence/access-token before enabling Confluence bindings."
+expired_credentials = "Refresh the Atlassian OAuth access token and rerun Confluence validation."
+revoked_credentials = "Reauthorize Confluence and replace confluence/access-token."
+missing_scopes = "Grant Confluence page and attachment scopes required by the configured artifact workflow."
+inaccessible_resource = "Confirm the selected Confluence page, space, or attachment is visible to the authorized account."
+transient_provider_outage = "Retry after Atlassian Confluence API and webhook delivery are healthy."
+
+[dependencies]
+
+[connector_contract]
+version = 1
+
+[[connector_contract.fixtures]]
+provider = "confluence"
+name = "page created webhook"
+kind = "webhook"
+metadata = { jwt_required = true, binding_id = "confluence.webhook" }
+body_json = { timestamp = "1471926079631", event = "page_created", userAccountId = "ff80808154510724015451074c160001", page = { creatorAccountId = "ff80808154510724015451074c160001", spaceKey = "DOCS", modificationDate = "1471926079631", lastModifierAccountId = "ff80808154510724015451074c160001", self = "https://example.atlassian.net/wiki/display/DOCS/Report", id = "16777227", title = "Report" } }
+headers = { authorization = "JWT fixture.jwt.token" }
+expect_type = "event"
+expect_kind = "confluence.webhook.page_created"
+expect_event_count = 1
