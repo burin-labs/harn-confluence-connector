@@ -4,7 +4,7 @@ pub fn assert_confluence_interface() {
   require provider_id() == "confluence", "provider id"
   require len(methods()) >= 10, "method surface"
   require payload_schema().harn_schema_name == "ConfluenceEventPayload", "payload schema name"
-  let active = activate(
+  const active = activate(
     [
       {id: "confluence.webhook", kind: "webhook", jwt_required: true},
       {

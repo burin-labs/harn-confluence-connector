@@ -13,7 +13,7 @@ pipeline default() {
   shutdown()
   init({access_token: "secret_access", site_base_url: "https://example.atlassian.net"})
   http_mock_clear()
-  let base = "https://example.atlassian.net"
+  const base = "https://example.atlassian.net"
   http_mock(
     "*",
     "https://example.atlassian.net/*",
@@ -53,14 +53,14 @@ pipeline default() {
       ],
     },
   )
-  let page = call("pages.get", {page_id: "123", body_format: "storage"})
+  const page = call("pages.get", {page_id: "123", body_format: "storage"})
   expect_eq(page.id, "123", "page response")
   call("pages.list", {limit: 10, body_format: "view"})
   call("attachments.for_page", {page_id: "123", limit: 50})
-  let downloaded = call("attachments.download", {download_link: "/wiki/download/attachments/123/report.pdf"})
+  const downloaded = call("attachments.download", {download_link: "/wiki/download/attachments/123/report.pdf"})
   expect_eq(downloaded.bytes, "PDF-BYTES", "download bytes response")
   call("search.cql", {cql: "type=page", limit: 25})
-  let create_rejected = call("pages.create", {space_id: "456", title: "New Report", body: "<p>Hi</p>"})
+  const create_rejected = call("pages.create", {space_id: "456", title: "New Report", body: "<p>Hi</p>"})
   expect(is_err(create_rejected), "mutating Confluence page create requires approval")
   expect_eq(unwrap_err(create_rejected).code, "approval_required", "approval code")
   call("pages.create", {space_id: "456", title: "New Report", body: "<p>Hi</p>", _approved: true})
@@ -68,7 +68,7 @@ pipeline default() {
     "pages.update",
     {page_id: "123", title: "Updated Report", body: "<p>Hi</p>", version_number: 8, _approved: true},
   )
-  let calls = http_mock_calls({include_sensitive: true})
+  const calls = http_mock_calls({include_sensitive: true})
   expect_eq(len(calls), 7, "all expected outbound methods dispatched")
   expect_eq(calls[0].method, "GET", "page get uses GET")
   expect_eq(calls[0].url, base + "/wiki/api/v2/pages/123?body-format=storage", "page URL")
@@ -94,13 +94,13 @@ pipeline default() {
   expect_eq(calls[6].method, "PUT", "update method")
   expect_eq(calls[6].url, base + "/wiki/api/v2/pages/123", "update URL")
   expect(calls[6].body.contains("\"number\":8"), "update version body")
-  let page_export = artifact_export_request({page_id: "123", format: "storage", title: "report"})
+  const page_export = artifact_export_request({page_id: "123", format: "storage", title: "report"})
   expect_eq(page_export.kind, "artifact_export", "page export descriptor kind")
   expect_eq(page_export.method, "GET", "page export method")
   expect_eq(page_export.url, base + "/wiki/api/v2/pages/123", "page export URL")
   expect_eq(page_export.query["body-format"], "storage", "page export body format")
   expect_eq(page_export.artifact.mime_type, "text/html", "page export mime")
-  let attachment_export = artifact_export_request(
+  const attachment_export = artifact_export_request(
     {
       attachment_id: "att_1",
       name: "report.pdf",
@@ -115,10 +115,10 @@ pipeline default() {
     "attachment export URL",
   )
   expect_eq(attachment_export.artifact.mime_type, "application/pdf", "attachment export mime")
-  let pdf_page_export = artifact_export_request({page_id: "123", format: "pdf", title: "report"})
+  const pdf_page_export = artifact_export_request({page_id: "123", format: "pdf", title: "report"})
   expect(is_err(pdf_page_export), "page PDF export is unsupported by official REST API")
   expect_eq(unwrap_err(pdf_page_export).code, "unsupported_pdf_export", "PDF error code")
-  let import_request = artifact_import_request(
+  const import_request = artifact_import_request(
     {
       space_id: "456",
       title: "Imported Report",
@@ -130,15 +130,15 @@ pipeline default() {
   expect_eq(import_request.method, "POST", "import create method")
   expect_eq(import_request.url, base + "/wiki/api/v2/pages", "import create URL")
   expect_eq(import_request.media.uri, "artifact://session/report.html", "import media uri")
-  let update_import = artifact_import_request(
+  const update_import = artifact_import_request(
     {page_id: "123", title: "Imported Report", body: "<p>Generated</p>", version_number: 9},
   )
   expect_eq(update_import.method, "PUT", "import update method")
   expect_eq(update_import.body.version.number, 9, "import update version")
-  let descriptor = request_descriptor("pages.get", {access_token: "secret_access", page_id: "123"})
+  const descriptor = request_descriptor("pages.get", {access_token: "secret_access", page_id: "123"})
   expect(!is_err(descriptor), "page request descriptor builds")
   expect_eq(unwrap(descriptor).url, base + "/wiki/api/v2/pages/123", "page request URL")
-  let bad_host = call(
+  const bad_host = call(
     "pages.get",
     {page_id: "123", access_token: "secret_access", site_base_url: "https://evil.example"},
   )

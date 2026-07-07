@@ -22,7 +22,7 @@ pipeline default() {
   shutdown()
   init({access_token: "secret_access", site_base_url: "https://example.atlassian.net"})
   http_mock_clear()
-  let base = "https://example.atlassian.net"
+  const base = "https://example.atlassian.net"
   http_mock(
     "*",
     "https://example.atlassian.net/*",
@@ -51,23 +51,23 @@ pipeline default() {
       ],
     },
   )
-  let first = poll_tick(poll_ctx())
+  const first = poll_tick(poll_ctx())
   expect_eq(len(first.events), 1, "first tick emits changed page")
   expect_eq(first.events[0].kind, "confluence.search.page.changed", "poll event kind")
   expect_eq(first.events[0].payload.page_id, "123", "poll page id")
   expect_eq(first.cursor.since, "2026-07-06T12:00:00Z", "cursor advances")
   expect(first.state.poll_cache.get("confluence.search:123") != nil, "first tick persists snapshot")
-  let duplicate = poll_tick(poll_ctx(first.cursor, first.state))
+  const duplicate = poll_tick(poll_ctx(first.cursor, first.state))
   expect_eq(len(duplicate.events), 0, "duplicate page snapshot is skipped")
   expect_eq(duplicate.cursor.since, "2026-07-06T12:00:00Z", "duplicate keeps cursor")
-  let failed = poll_tick(poll_ctx(duplicate.cursor, duplicate.state))
+  const failed = poll_tick(poll_ctx(duplicate.cursor, duplicate.state))
   expect(is_err(failed), "retryable Confluence failures return Err without advancing local state")
   expect_eq(unwrap_err(failed).code, "unavailable", "retry error preserves Confluence code")
-  let retried = poll_tick(poll_ctx(duplicate.cursor, duplicate.state))
+  const retried = poll_tick(poll_ctx(duplicate.cursor, duplicate.state))
   expect_eq(len(retried.events), 1, "retry emits updated page")
   expect_eq(retried.events[0].payload.title, "Report v2", "updated title")
   expect_eq(retried.cursor.since, "2026-07-06T13:00:00Z", "retry cursor advances")
-  let calls = http_mock_calls({include_sensitive: true})
+  const calls = http_mock_calls({include_sensitive: true})
   expect_eq(len(calls), 4, "one Confluence request per tick")
   expect(calls[0].url.starts_with(base + "/wiki/rest/api/content/search?"), "poll URL prefix")
   expect(calls[0].url.contains("limit=25"), "poll limit")

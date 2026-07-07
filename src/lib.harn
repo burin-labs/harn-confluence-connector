@@ -1,12 +1,12 @@
-let CONFLUENCE_PROVIDER_ID = "confluence"
+const CONFLUENCE_PROVIDER_ID = "confluence"
 
-let CONFLUENCE_DEFAULT_SITE_BASE_URL = "https://example.atlassian.net"
+const CONFLUENCE_DEFAULT_SITE_BASE_URL = "https://example.atlassian.net"
 
-let CONFLUENCE_ALLOWED_HOST_SUFFIX = ".atlassian.net"
+const CONFLUENCE_ALLOWED_HOST_SUFFIX = ".atlassian.net"
 
-let CONFLUENCE_ALLOWED_API_HOST = "api.atlassian.com"
+const CONFLUENCE_ALLOWED_API_HOST = "api.atlassian.com"
 
-let CONFLUENCE_OUTBOUND_METHODS = [
+const CONFLUENCE_OUTBOUND_METHODS = [
   "pages.list",
   "pages.get",
   "pages.create",
@@ -21,9 +21,9 @@ let CONFLUENCE_OUTBOUND_METHODS = [
   "artifact.import_request",
 ]
 
-let CONFLUENCE_MUTATING_METHODS = ["pages.create", "pages.update", "pages.delete", "artifact.import_request"]
+const CONFLUENCE_MUTATING_METHODS = ["pages.create", "pages.update", "pages.delete", "artifact.import_request"]
 
-var CONFLUENCE_STATE = {initialized: false, active: false, ctx: {}, webhook_bindings: {}, poll_bindings: {}}
+let CONFLUENCE_STATE = {initialized: false, active: false, ctx: {}, webhook_bindings: {}, poll_bindings: {}}
 
 /** Return this connector's Harn provider id. */
 pub fn provider_id() {
@@ -37,7 +37,7 @@ pub fn kinds() {
 
 /** Describe outbound methods and which ones mutate provider state. */
 pub fn methods() {
-  var out = []
+  let out = []
   for name in CONFLUENCE_OUTBOUND_METHODS {
     out = out + [{name: name, requires_approval: contains(CONFLUENCE_MUTATING_METHODS, name)}]
   }
@@ -80,14 +80,14 @@ pub fn init(ctx = nil) {
 
 /** Activate webhook and poll bindings. */
 pub fn activate(bindings = []) {
-  var webhook_bindings = {}
-  var poll_bindings = {}
+  let webhook_bindings = {}
+  let poll_bindings = {}
   for binding in bindings ?? [] {
-    let binding_id = __text(
+    const binding_id = __text(
       binding?.binding_id ?? binding?.id
         ?? ("binding-" + to_string(len(webhook_bindings.keys()) + len(poll_bindings.keys()))),
     )
-    let kind = __text(binding?.kind ?? "webhook")
+    const kind = __text(binding?.kind ?? "webhook")
     if kind == "webhook" {
       webhook_bindings[binding_id] = binding + {binding_id: binding_id}
     } else if kind == "poll" {
@@ -120,27 +120,27 @@ pub fn shutdown() {
  * verification belongs at the hosting boundary that owns app installation keys.
  */
 pub fn normalize_inbound(raw) {
-  let auth = __webhook_auth_status(raw)
+  const auth = __webhook_auth_status(raw)
   if is_err(auth) {
     return __reject(401, unwrap_err(auth).code, unwrap_err(auth).message)
   }
-  let parsed = __body_json(raw)
+  const parsed = __body_json(raw)
   if is_err(parsed) {
     return __reject(400, "invalid_json", "confluence webhook body must be JSON")
   }
-  let payload = unwrap(parsed)
-  let event_name = __event_name(payload, raw)
+  const payload = unwrap(parsed)
+  const event_name = __event_name(payload, raw)
   if event_name == "" {
     return __reject(400, "missing_event", "confluence webhook body must contain an event name")
   }
-  let page = payload?.page ?? payload?.content ?? {}
-  let attachment = payload?.attachment ?? {}
-  let page_id = __text(page?.id ?? payload?.pageId ?? payload?.contentId)
-  let attachment_id = __text(attachment?.id ?? payload?.attachmentId)
-  let space_key = __text(page?.spaceKey ?? payload?.spaceKey ?? payload?.space?.key)
-  let event = "confluence.webhook." + lowercase(event_name)
-  let removed = __is_removed_event(event_name)
-  let normalized = {
+  const page = payload?.page ?? payload?.content ?? {}
+  const attachment = payload?.attachment ?? {}
+  const page_id = __text(page?.id ?? payload?.pageId ?? payload?.contentId)
+  const attachment_id = __text(attachment?.id ?? payload?.attachmentId)
+  const space_key = __text(page?.spaceKey ?? payload?.spaceKey ?? payload?.space?.key)
+  const event = "confluence.webhook." + lowercase(event_name)
+  const removed = __is_removed_event(event_name)
+  const normalized = {
     provider: CONFLUENCE_PROVIDER_ID,
     event: event,
     event_type: event,
@@ -179,7 +179,7 @@ pub fn normalize_inbound(raw) {
 
 /** Dispatch one Confluence outbound method. */
 pub fn call(method, args = nil) {
-  let name = __canonical_method(method)
+  const name = __canonical_method(method)
   if name == "artifact.export_request" {
     return artifact_export_request(args ?? {})
   }
@@ -189,11 +189,11 @@ pub fn call(method, args = nil) {
   if contains(CONFLUENCE_MUTATING_METHODS, name) && !(args?._approved ?? args?.approved ?? false) {
     return __err("approval_required", "confluence method `" + name + "` requires approval")
   }
-  let cfg = __config(args ?? {})
+  const cfg = __config(args ?? {})
   if is_err(cfg) {
     return cfg
   }
-  let request = __request_for_method(name, args ?? {}, unwrap(cfg))
+  const request = __request_for_method(name, args ?? {}, unwrap(cfg))
   if is_err(request) {
     return request
   }
@@ -202,7 +202,7 @@ pub fn call(method, args = nil) {
 
 /** Build the deterministic HTTP descriptor for a Confluence method. */
 pub fn request_descriptor(method, args = nil) {
-  let cfg = __config(args ?? {})
+  const cfg = __config(args ?? {})
   if is_err(cfg) {
     return cfg
   }
@@ -211,47 +211,47 @@ pub fn request_descriptor(method, args = nil) {
 
 /** Poll Confluence CQL search and normalize changed pages from Harn-managed state. */
 pub fn poll_tick(ctx) {
-  let cfg = __config((ctx?.binding?.config ?? {}) + (ctx?.binding ?? {}) + (ctx ?? {}))
+  const cfg = __config((ctx?.binding?.config ?? {}) + (ctx?.binding ?? {}) + (ctx ?? {}))
   if is_err(cfg) {
     return cfg
   }
-  let binding = ctx?.binding ?? {}
-  let poll = binding?.poll ?? binding?.config?.poll ?? {}
-  let since = __text(ctx?.cursor?.since ?? ctx?.cursor?.cursor ?? poll?.since ?? "1970-01-01T00:00:00Z")
-  let cql = __text(poll?.cql ?? ("type=page and lastmodified > \"" + since + "\""))
-  let args = (poll ?? {}) + {cql: cql, limit: poll?.limit ?? 25}
-  let request = __request_for_method("search.cql", args, unwrap(cfg))
+  const binding = ctx?.binding ?? {}
+  const poll = binding?.poll ?? binding?.config?.poll ?? {}
+  const since = __text(ctx?.cursor?.since ?? ctx?.cursor?.cursor ?? poll?.since ?? "1970-01-01T00:00:00Z")
+  const cql = __text(poll?.cql ?? ("type=page and lastmodified > \"" + since + "\""))
+  const args = (poll ?? {}) + {cql: cql, limit: poll?.limit ?? 25}
+  const request = __request_for_method("search.cql", args, unwrap(cfg))
   if is_err(request) {
     return request
   }
-  let response = __confluence_request(unwrap(request))
+  const response = __confluence_request(unwrap(request))
   if is_err(response) {
     return response
   }
-  let payload = unwrap(response)
-  let state = ctx?.state ?? {}
-  let cache = state?.poll_cache ?? {}
-  var next_cache = cache
-  var events = []
-  var next_since = since
+  const payload = unwrap(response)
+  const state = ctx?.state ?? {}
+  const cache = state?.poll_cache ?? {}
+  let next_cache = cache
+  let events = []
+  let next_since = since
   for entry in payload?.results ?? [] {
-    let content = entry?.content ?? entry
-    let page_id = __text(content?.id)
+    const content = entry?.content ?? entry
+    const page_id = __text(content?.id)
     if page_id == "" {
       continue
     }
-    let version = content?.version ?? {}
-    let modified_at = __text(version?.when ?? version?.createdAt ?? content?.history?.lastUpdated?.when)
+    const version = content?.version ?? {}
+    const modified_at = __text(version?.when ?? version?.createdAt ?? content?.history?.lastUpdated?.when)
     if modified_at != "" && modified_at > next_since {
       next_since = modified_at
     }
-    let cache_key = __text(ctx?.binding_id ?? binding?.id ?? "confluence.search") + ":" + page_id
-    let fingerprint = json_stringify({id: page_id, version: version, title: content?.title})
+    const cache_key = __text(ctx?.binding_id ?? binding?.id ?? "confluence.search") + ":" + page_id
+    const fingerprint = json_stringify({id: page_id, version: version, title: content?.title})
     if cache.get(cache_key) == fingerprint {
       continue
     }
     next_cache[cache_key] = fingerprint
-    let event_kind = "confluence.search.page.changed"
+    const event_kind = "confluence.search.page.changed"
     events = events
       + [
       {
@@ -282,14 +282,14 @@ pub fn poll_tick(ctx) {
 
 /** Build a deterministic Confluence export/download descriptor for an artifact. */
 pub fn artifact_export_request(args = nil) {
-  let cfg = __descriptor_config(args ?? {})
+  const cfg = __descriptor_config(args ?? {})
   if is_err(cfg) {
     return cfg
   }
-  let format = lowercase(__text(args?.format ?? "view"))
-  let attachment_download = __attachment_download_url(args ?? {}, unwrap(cfg))
+  const format = lowercase(__text(args?.format ?? "view"))
+  const attachment_download = __attachment_download_url(args ?? {}, unwrap(cfg))
   if !is_err(attachment_download) {
-    let url = unwrap(attachment_download)
+    const url = unwrap(attachment_download)
     return {
       provider: CONFLUENCE_PROVIDER_ID,
       kind: "artifact_export",
@@ -311,12 +311,12 @@ pub fn artifact_export_request(args = nil) {
       "Confluence Cloud does not provide an official REST page-to-PDF export endpoint",
     )
   }
-  let page_id = __artifact_page_id(args ?? {})
+  const page_id = __artifact_page_id(args ?? {})
   if is_err(page_id) {
     return page_id
   }
-  let body_format = __body_format(format)
-  let mime_type = if body_format == "atlas_doc_format" {
+  const body_format = __body_format(format)
+  const mime_type = if body_format == "atlas_doc_format" {
     "application/json"
   } else {
     "text/html"
@@ -342,19 +342,19 @@ pub fn artifact_export_request(args = nil) {
 
 /** Build a deterministic Confluence create/update page descriptor for a local artifact. */
 pub fn artifact_import_request(args = nil) {
-  let cfg = __descriptor_config(args ?? {})
+  const cfg = __descriptor_config(args ?? {})
   if is_err(cfg) {
     return cfg
   }
-  let title = __required(args ?? {}, "title")
+  const title = __required(args ?? {}, "title")
   if is_err(title) {
     return title
   }
-  let body = __text(args?.body ?? args?.content ?? "")
-  let representation = __text(args?.representation ?? "storage")
-  let page_id = __text(args?.page_id ?? args?.pageId)
+  const body = __text(args?.body ?? args?.content ?? "")
+  const representation = __text(args?.representation ?? "storage")
+  const page_id = __text(args?.page_id ?? args?.pageId)
   if page_id == "" {
-    let space_id = __required(args ?? {}, "space_id")
+    const space_id = __required(args ?? {}, "space_id")
     if is_err(space_id) {
       return space_id
     }
@@ -374,7 +374,7 @@ pub fn artifact_import_request(args = nil) {
       scopes: ["write:page:confluence"],
     }
   }
-  let version_number = args?.version_number ?? args?.versionNumber
+  const version_number = args?.version_number ?? args?.versionNumber
   if version_number == nil {
     return __err("missing_version_number", "confluence page update import requires `version_number`")
   }
@@ -400,7 +400,7 @@ fn __request_for_method(method, args, cfg) {
     return Ok(__json_request("GET", cfg.base_url + "/wiki/api/v2/pages", nil, cfg, args))
   }
   if method == "pages.get" {
-    let page_id = __required(args, "page_id")
+    const page_id = __required(args, "page_id")
     if is_err(page_id) {
       return page_id
     }
@@ -415,11 +415,11 @@ fn __request_for_method(method, args, cfg) {
     )
   }
   if method == "pages.create" {
-    let title = __required(args, "title")
+    const title = __required(args, "title")
     if is_err(title) {
       return title
     }
-    let space_id = __required(args, "space_id")
+    const space_id = __required(args, "space_id")
     if is_err(space_id) {
       return space_id
     }
@@ -440,15 +440,15 @@ fn __request_for_method(method, args, cfg) {
     )
   }
   if method == "pages.update" {
-    let page_id = __required(args, "page_id")
+    const page_id = __required(args, "page_id")
     if is_err(page_id) {
       return page_id
     }
-    let title = __required(args, "title")
+    const title = __required(args, "title")
     if is_err(title) {
       return title
     }
-    let version_number = args?.version_number ?? args?.versionNumber
+    const version_number = args?.version_number ?? args?.versionNumber
     if version_number == nil {
       return __err("missing_version_number", "confluence page update requires `version_number`")
     }
@@ -469,7 +469,7 @@ fn __request_for_method(method, args, cfg) {
     )
   }
   if method == "pages.delete" {
-    let page_id = __required(args, "page_id")
+    const page_id = __required(args, "page_id")
     if is_err(page_id) {
       return page_id
     }
@@ -484,7 +484,7 @@ fn __request_for_method(method, args, cfg) {
     )
   }
   if method == "spaces.pages" {
-    let space_id = __required(args, "space_id")
+    const space_id = __required(args, "space_id")
     if is_err(space_id) {
       return space_id
     }
@@ -499,7 +499,7 @@ fn __request_for_method(method, args, cfg) {
     )
   }
   if method == "attachments.get" {
-    let attachment_id = __required(args, "attachment_id")
+    const attachment_id = __required(args, "attachment_id")
     if is_err(attachment_id) {
       return attachment_id
     }
@@ -514,7 +514,7 @@ fn __request_for_method(method, args, cfg) {
     )
   }
   if method == "attachments.for_page" {
-    let page_id = __required(args, "page_id")
+    const page_id = __required(args, "page_id")
     if is_err(page_id) {
       return page_id
     }
@@ -529,14 +529,14 @@ fn __request_for_method(method, args, cfg) {
     )
   }
   if method == "attachments.download" {
-    let download = __attachment_download_url(args, cfg)
+    const download = __attachment_download_url(args, cfg)
     if is_err(download) {
       return download
     }
     return Ok(__binary_request("GET", unwrap(download), cfg))
   }
   if method == "search.cql" {
-    let cql = __required(args, "cql")
+    const cql = __required(args, "cql")
     if is_err(cql) {
       return cql
     }
@@ -549,7 +549,7 @@ fn __request_for_method(method, args, cfg) {
 }
 
 fn __json_request(method, url, body, cfg, args) {
-  let query = __confluence_query(args)
+  const query = __confluence_query(args)
   return {
     method: method,
     url: url + query,
@@ -569,20 +569,20 @@ fn __binary_request(method, url, cfg) {
 }
 
 fn __confluence_request(request) {
-  let response = try {
+  const response = try {
     harness.net.request(request.method, request.url, {headers: request.headers, body: request.body})
   }
   if is_err(response) {
     return __err("transport", to_string(unwrap_err(response)))
   }
-  let http_response = unwrap(response)
-  let text = http_response.body ?? ""
-  let content_type = lowercase(__text(__header(http_response.headers ?? {}, "content-type")))
+  const http_response = unwrap(response)
+  const text = http_response.body ?? ""
+  const content_type = lowercase(__text(__header(http_response.headers ?? {}, "content-type")))
   if http_response.status >= 200 && http_response.status < 300 && !contains(content_type, "json")
     && text != "" {
     return {bytes: text, headers: http_response.headers ?? {}}
   }
-  let decoded = try {
+  const decoded = try {
     if text == "" {
       {}
     } else {
@@ -595,7 +595,7 @@ fn __confluence_request(request) {
     }
     return __err("invalid_response", "Confluence API returned invalid JSON")
   }
-  let payload = unwrap(decoded)
+  const payload = unwrap(decoded)
   if http_response.status < 200 || http_response.status >= 300 {
     return Err(
       {
@@ -611,11 +611,11 @@ fn __confluence_request(request) {
 }
 
 fn __config(args) {
-  let access_token = __text(args?.access_token ?? args?.token ?? CONFLUENCE_STATE.ctx?.access_token)
+  const access_token = __text(args?.access_token ?? args?.token ?? CONFLUENCE_STATE.ctx?.access_token)
   if access_token == "" {
     return __err("missing_access_token", "confluence connector requires access_token")
   }
-  let descriptor = __descriptor_config(args)
+  const descriptor = __descriptor_config(args)
   if is_err(descriptor) {
     return descriptor
   }
@@ -623,8 +623,8 @@ fn __config(args) {
 }
 
 fn __descriptor_config(args) {
-  let base_url = __base_url(args)
-  let checked = __validate_base_url(base_url)
+  const base_url = __base_url(args)
+  const checked = __validate_base_url(base_url)
   if is_err(checked) {
     return checked
   }
@@ -632,7 +632,7 @@ fn __descriptor_config(args) {
 }
 
 fn __base_url(args) {
-  let cloud_id = __text(args?.cloud_id ?? args?.cloudId ?? CONFLUENCE_STATE.ctx?.cloud_id)
+  const cloud_id = __text(args?.cloud_id ?? args?.cloudId ?? CONFLUENCE_STATE.ctx?.cloud_id)
   if cloud_id != "" {
     return "https://api.atlassian.com/ex/confluence/" + url_encode(cloud_id)
   }
@@ -649,12 +649,12 @@ fn __headers(cfg) {
 }
 
 fn __confluence_query(args) {
-  var query = {}
+  let query = {}
   for key in (args ?? {}).keys() {
     if contains(__request_deny_keys(), key) || starts_with(key, "_") {
       continue
     }
-    let mapped = __query_key(key)
+    const mapped = __query_key(key)
     if mapped == "" {
       continue
     }
@@ -663,7 +663,7 @@ fn __confluence_query(args) {
   if len(query.keys()) == 0 {
     return ""
   }
-  var parts = []
+  let parts = []
   for entry in query.entries() {
     if entry.value == nil {
       continue
@@ -677,7 +677,7 @@ fn __confluence_query(args) {
 }
 
 fn __query_key(key) {
-  let text = __text(key)
+  const text = __text(key)
   if text == "page_id" || text == "pageId" || text == "attachment_id" || text == "attachmentId"
     || text == "space_id"
     || text == "spaceId"
@@ -715,8 +715,8 @@ fn __request_deny_keys() {
 }
 
 fn __webhook_auth_status(raw) {
-  let authorization = __text(__header(raw?.headers ?? {}, "authorization"))
-  let required = raw?.jwt_required ?? raw?.metadata?.jwt_required ?? CONFLUENCE_STATE.ctx?.jwt_required ?? false
+  const authorization = __text(__header(raw?.headers ?? {}, "authorization"))
+  const required = raw?.jwt_required ?? raw?.metadata?.jwt_required ?? CONFLUENCE_STATE.ctx?.jwt_required ?? false
   if authorization == "" {
     if required {
       return __err("missing_authorization", "missing Confluence webhook Authorization JWT header")
@@ -730,20 +730,20 @@ fn __webhook_auth_status(raw) {
 }
 
 fn __event_name(payload, raw) {
-  let direct = __text(payload?.webhookEvent ?? payload?.event ?? payload?.eventType ?? raw?.event)
+  const direct = __text(payload?.webhookEvent ?? payload?.event ?? payload?.eventType ?? raw?.event)
   if direct.contains(":") {
-    let pieces = direct.split(":")
+    const pieces = direct.split(":")
     return pieces[len(pieces) - 1]
   }
   return direct
 }
 
 fn __occurred_at(payload) {
-  let created = __text(payload?.createdAt ?? payload?.updatedAt)
+  const created = __text(payload?.createdAt ?? payload?.updatedAt)
   if created != "" {
     return created
   }
-  let timestamp = __text(payload?.timestamp)
+  const timestamp = __text(payload?.timestamp)
   if timestamp.contains("T") {
     return timestamp
   }
@@ -768,7 +768,7 @@ fn __body_json(raw) {
 }
 
 fn __canonical_method(method) {
-  let text = __text(method)
+  const text = __text(method)
   if text == "export_artifact" {
     return "artifact.export_request"
   }
@@ -788,8 +788,8 @@ fn __canonical_method(method) {
 }
 
 fn __required(args, snake_key) {
-  let camel = __snake_to_camel(snake_key)
-  let value = __text(args?.[snake_key] ?? args?.[camel])
+  const camel = __snake_to_camel(snake_key)
+  const value = __text(args?.[snake_key] ?? args?.[camel])
   if value == "" {
     return __err("missing_" + snake_key, "confluence method requires `" + snake_key + "`")
   }
@@ -822,12 +822,12 @@ fn __snake_to_camel(value) {
 }
 
 fn __validate_base_url(url) {
-  let text = __strip_trailing_slash(__text(url))
+  const text = __strip_trailing_slash(__text(url))
   if !starts_with(lowercase(text), "https://") {
     return __err("invalid_base_url", "confluence base url must be an absolute https URL")
   }
-  let parsed = url_parse(text)
-  let host = lowercase(__text(parsed?.host))
+  const parsed = url_parse(text)
+  const host = lowercase(__text(parsed?.host))
   if host == CONFLUENCE_ALLOWED_API_HOST || host.ends_with(CONFLUENCE_ALLOWED_HOST_SUFFIX) {
     return Ok(text)
   }
@@ -835,21 +835,21 @@ fn __validate_base_url(url) {
 }
 
 fn __attachment_download_url(args, cfg) {
-  let raw = __text(
+  const raw = __text(
     args?.download_url ?? args?.downloadUrl ?? args?.download_link ?? args?.downloadLink
       ?? args?._links?.download,
   )
   if raw == "" {
     return __err("missing_download_link", "confluence attachment export requires a download link")
   }
-  let absolute = if starts_with(raw, "https://") {
+  const absolute = if starts_with(raw, "https://") {
     raw
   } else if starts_with(raw, "/") {
     cfg.base_url + raw
   } else {
     cfg.base_url + "/" + raw
   }
-  let checked = __validate_base_url(absolute)
+  const checked = __validate_base_url(absolute)
   if is_err(checked) {
     return checked
   }
@@ -857,7 +857,7 @@ fn __attachment_download_url(args, cfg) {
 }
 
 fn __artifact_page_id(args) {
-  let page_id = __text(args?.page_id ?? args?.pageId ?? args?.id)
+  const page_id = __text(args?.page_id ?? args?.pageId ?? args?.id)
   if page_id == "" {
     return __err("missing_page_id", "confluence artifact request requires `page_id`")
   }
@@ -865,7 +865,7 @@ fn __artifact_page_id(args) {
 }
 
 fn __body_format(format) {
-  let lower = lowercase(__text(format))
+  const lower = lowercase(__text(format))
   if lower == "adf" || lower == "atlas_doc_format" {
     return "atlas_doc_format"
   }
@@ -876,7 +876,7 @@ fn __body_format(format) {
 }
 
 fn __page_artifact_name(name, body_format) {
-  let text = __text(name)
+  const text = __text(name)
   if body_format == "atlas_doc_format" {
     if text.ends_with(".json") {
       return text
@@ -890,12 +890,12 @@ fn __page_artifact_name(name, body_format) {
 }
 
 fn __is_removed_event(event) {
-  let lower = lowercase(__text(event))
+  const lower = lowercase(__text(event))
   return lower.contains("removed") || lower.contains("trashed") || lower.contains("archived")
 }
 
 fn __source_refs(page_id, attachment_id, page, attachment) {
-  var refs = []
+  let refs = []
   if page_id != "" {
     refs = refs + [__page_ref(page_id, page)]
   }
@@ -932,7 +932,7 @@ fn __attachment_ref(attachment_id, attachment) {
 }
 
 fn __mime_type_from_name(name) {
-  let lower = lowercase(__text(name))
+  const lower = lowercase(__text(name))
   if lower.ends_with(".pdf") {
     return "application/pdf"
   }
@@ -958,7 +958,7 @@ fn __mime_type_from_name(name) {
 }
 
 fn __strip_trailing_slash(value) {
-  let text = __text(value)
+  const text = __text(value)
   if text.ends_with("/") {
     return text[0:len(text) - 1]
   }
@@ -966,7 +966,7 @@ fn __strip_trailing_slash(value) {
 }
 
 fn __header(headers, name) {
-  let wanted = lowercase(name)
+  const wanted = lowercase(name)
   for entry in (headers ?? {}).entries() {
     if lowercase(trim(to_string(entry.key))) == wanted {
       return entry.value
