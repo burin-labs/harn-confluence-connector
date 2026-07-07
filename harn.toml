@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Pure-Harn Confluence connector for page artifacts, attachments, webhooks, polling, and outbound API dispatch."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/burin-labs/harn-confluence-connector"
-harn = ">=0.9,<0.10"
+harn = ">=0.10,<0.11"
 docs_url = "README.md"
 provenance = "https://github.com/burin-labs/harn-confluence-connector/releases/tag/v0.1.0"
 
