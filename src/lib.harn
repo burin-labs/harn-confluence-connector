@@ -789,7 +789,7 @@ fn __canonical_method(method) {
 
 fn __required(args, snake_key) {
   let camel = __snake_to_camel(snake_key)
-  let value = __text(args?[snake_key] ?? args?[camel])
+  let value = __text(args?.[snake_key] ?? args?.[camel])
   if value == "" {
     return __err("missing_" + snake_key, "confluence method requires `" + snake_key + "`")
   }
