@@ -1,9 +1,15 @@
 # AGENTS.md
 
-Use `CLAUDE.md` for repo-local notes. Shared connector authoring rules live in
-the Harn guide:
+Shared connector authoring rules live in the Harn guide:
 
-- https://github.com/burin-labs/harn/blob/main/docs/src/connectors/authoring.md
+- [Connector authoring guide](https://github.com/burin-labs/harn/blob/main/docs/src/connectors/authoring.md)
 
-Keep this file as a pointer. Put shared connector guidance in the Harn guide,
-not here.
+Put shared connector guidance in the Harn guide and keep only
+Confluence-specific notes here.
+
+## Provider notes
+
+- Keep API calls scoped to `*.atlassian.net` and `api.atlassian.com`.
+- Use the exact page and attachment scopes declared in `harn.toml`.
+- Treat page-to-PDF export as unsupported until Atlassian documents a Cloud
+  REST endpoint; do not call private UI endpoints.
