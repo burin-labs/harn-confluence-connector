@@ -27,7 +27,7 @@ Confluence Cloud does not currently expose an official REST page-to-PDF export
 endpoint. `artifact.export_request({format: "pdf"})` returns an explicit
 `unsupported_pdf_export` error instead of using undocumented UI endpoints.
 
-## Useful Methods
+## Useful methods
 
 - `pages.list`
 - `pages.get`
