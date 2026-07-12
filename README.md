@@ -14,14 +14,25 @@ The surface is deliberately connector-shaped, not document-renderer shaped:
 Document rendering and manifest vocabulary stay in `harn-documents`; this
 package owns the external Confluence boundary.
 
-## Provider
+## Install
+
+```sh
+harn add github.com/burin-labs/harn-confluence-connector@v0.1.0
+```
+
+For local development, use a path dependency on this checkout. Use the Harn
+CLI version pinned in `.harn-version` for validation.
+
+## Configure
 
 - Provider id: `confluence`
 - API hosts: `*.atlassian.net` and `api.atlassian.com`
-- Recommended OAuth scopes for artifact workflows:
-  - `read:page:confluence`
-  - `read:attachment:confluence`
-  - `write:page:confluence`
+- Required secrets: `confluence/access-token`, `confluence/site-base-url`
+- Required OAuth scopes: `read:page:confluence`, `read:attachment:confluence`,
+  `write:page:confluence`
+
+Start browser-based setup with `harn connect confluence`. Check its status with
+`harn connect status --connector confluence --json`.
 
 Confluence Cloud does not currently expose an official REST page-to-PDF export
 endpoint. `artifact.export_request({format: "pdf"})` returns an explicit
@@ -42,7 +53,7 @@ endpoint. `artifact.export_request({format: "pdf"})` returns an explicit
 - `artifact.export_request`
 - `artifact.import_request`
 
-## References
+## Provider references
 
 - Confluence REST API v2:
   <https://developer.atlassian.com/cloud/confluence/rest/v2/>
@@ -57,7 +68,7 @@ endpoint. `artifact.export_request({format: "pdf"})` returns an explicit
 - Atlassian Cloud PDF export feature request:
   <https://jira.atlassian.com/browse/CONFCLOUD-61557>
 
-## Validation
+## Validate
 
 ```sh
 harn connector test . --provider confluence
