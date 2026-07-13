@@ -11,7 +11,10 @@ import { expect, expect_eq } from "./assertions"
 pipeline default() {
   egress_policy({allow: ["example.atlassian.net"], default: "deny"})
   shutdown()
-  init({access_token: "secret_access", site_base_url: "https://example.atlassian.net"})
+  const normalized = init("invalid-context")
+  expect_eq(normalized.ctx, {}, "non-dict init context is normalized")
+  const initialized = init({access_token: "secret_access", site_base_url: "https://example.atlassian.net"})
+  expect_eq(initialized.ctx.access_token, "secret_access", "dict init context is retained")
   http_mock_clear()
   const base = "https://example.atlassian.net"
   http_mock(
