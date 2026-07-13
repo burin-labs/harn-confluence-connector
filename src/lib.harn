@@ -23,7 +23,15 @@ const CONFLUENCE_OUTBOUND_METHODS = [
 
 const CONFLUENCE_MUTATING_METHODS = ["pages.create", "pages.update", "pages.delete", "artifact.import_request"]
 
-let CONFLUENCE_STATE = {initialized: false, active: false, ctx: {}, webhook_bindings: {}, poll_bindings: {}}
+type ConfluenceConnectorState = {
+  initialized: bool,
+  active: bool,
+  ctx: dict,
+  webhook_bindings: dict,
+  poll_bindings: dict,
+}
+
+let CONFLUENCE_STATE: ConfluenceConnectorState = {initialized: false, active: false, ctx: {}, webhook_bindings: {}, poll_bindings: {}}
 
 /** Return this connector's Harn provider id. */
 pub fn provider_id() {
@@ -74,7 +82,15 @@ pub fn payload_schema() {
 
 /** Initialize connector state with orchestrator context. */
 pub fn init(ctx = nil) {
-  CONFLUENCE_STATE = CONFLUENCE_STATE + {initialized: true, ctx: ctx ?? {}}
+  CONFLUENCE_STATE = CONFLUENCE_STATE
+    + {
+    initialized: true,
+    ctx: if type_of(ctx) == "dict" {
+      ctx
+    } else {
+      {}
+    },
+  }
   return CONFLUENCE_STATE
 }
 
