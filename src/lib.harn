@@ -21,7 +21,12 @@ const CONFLUENCE_OUTBOUND_METHODS = [
   "artifact.import_request",
 ]
 
-const CONFLUENCE_MUTATING_METHODS = ["pages.create", "pages.update", "pages.delete", "artifact.import_request"]
+const CONFLUENCE_MUTATING_METHODS = [
+  "pages.create",
+  "pages.update",
+  "pages.delete",
+  "artifact.import_request",
+]
 
 type ConfluenceConnectorState = {
   initialized: bool,
@@ -31,7 +36,13 @@ type ConfluenceConnectorState = {
   poll_bindings: dict,
 }
 
-let CONFLUENCE_STATE: ConfluenceConnectorState = {initialized: false, active: false, ctx: {}, webhook_bindings: {}, poll_bindings: {}}
+let CONFLUENCE_STATE: ConfluenceConnectorState = {
+  initialized: false,
+  active: false,
+  ctx: {},
+  webhook_bindings: {},
+  poll_bindings: {},
+}
 
 /** Return this connector's Harn provider id. */
 pub fn provider_id() {
@@ -101,7 +112,10 @@ pub fn activate(bindings = []) {
   for binding in bindings ?? [] {
     const binding_id = __text(
       binding?.binding_id ?? binding?.id
-        ?? ("binding-" + to_string(len(webhook_bindings.keys()) + len(poll_bindings.keys()))),
+        ?? ("binding-"
+        + to_string(
+        len(webhook_bindings.keys()) + len(poll_bindings.keys()),
+      )),
     )
     const kind = __text(binding?.kind ?? "webhook")
     if kind == "webhook" {
@@ -113,7 +127,11 @@ pub fn activate(bindings = []) {
     }
   }
   CONFLUENCE_STATE = CONFLUENCE_STATE
-    + {active: true, webhook_bindings: webhook_bindings, poll_bindings: poll_bindings}
+    + {
+    active: true,
+    webhook_bindings: webhook_bindings,
+    poll_bindings: poll_bindings,
+  }
   return {
     provider: CONFLUENCE_PROVIDER_ID,
     bindings: len(webhook_bindings.keys()) + len(poll_bindings.keys()),
@@ -124,7 +142,13 @@ pub fn activate(bindings = []) {
 
 /** Clear connector lifecycle state. */
 pub fn shutdown() {
-  CONFLUENCE_STATE = {initialized: false, active: false, ctx: {}, webhook_bindings: {}, poll_bindings: {}}
+  CONFLUENCE_STATE = {
+    initialized: false,
+    active: false,
+    ctx: {},
+    webhook_bindings: {},
+    poll_bindings: {},
+  }
   return {active: false, provider: CONFLUENCE_PROVIDER_ID}
 }
 
@@ -233,7 +257,9 @@ pub fn poll_tick(ctx) {
   }
   const binding = ctx?.binding ?? {}
   const poll = binding?.poll ?? binding?.config?.poll ?? {}
-  const since = __text(ctx?.cursor?.since ?? ctx?.cursor?.cursor ?? poll?.since ?? "1970-01-01T00:00:00Z")
+  const since = __text(
+    ctx?.cursor?.since ?? ctx?.cursor?.cursor ?? poll?.since ?? "1970-01-01T00:00:00Z",
+  )
   const cql = __text(poll?.cql ?? ("type=page and lastmodified > \"" + since + "\""))
   const args = (poll ?? {}) + {cql: cql, limit: poll?.limit ?? 25}
   const request = __request_for_method("search.cql", args, unwrap(cfg))
@@ -257,7 +283,9 @@ pub fn poll_tick(ctx) {
       continue
     }
     const version = content?.version ?? {}
-    const modified_at = __text(version?.when ?? version?.createdAt ?? content?.history?.lastUpdated?.when)
+    const modified_at = __text(
+      version?.when ?? version?.createdAt ?? content?.history?.lastUpdated?.when,
+    )
     if modified_at != "" && modified_at > next_since {
       next_since = modified_at
     }
@@ -313,7 +341,8 @@ pub fn artifact_export_request(args = nil) {
       url: url,
       artifact: {
         uri: args?.uri
-          ?? ("confluence://attachments/" + __text(args?.attachment_id ?? args?.attachmentId)),
+          ?? ("confluence://attachments/"
+          + __text(args?.attachment_id ?? args?.attachmentId)),
         name: __text(args?.name ?? args?.title ?? "confluence-attachment"),
         mime_type: __text(args?.mime_type ?? args?.mediaType ?? __mime_type_from_name(args?.name)),
         source_ref: __attachment_ref(__text(args?.attachment_id ?? args?.attachmentId), args ?? {}),
@@ -386,13 +415,19 @@ pub fn artifact_import_request(args = nil) {
         parentId: args?.parent_id ?? args?.parentId,
         body: {representation: representation, value: body},
       },
-      media: {uri: args?.uri ?? args?.path, mime_type: args?.mime_type ?? args?.mimeType ?? "text/html"},
+      media: {
+        uri: args?.uri ?? args?.path,
+        mime_type: args?.mime_type ?? args?.mimeType ?? "text/html",
+      },
       scopes: ["write:page:confluence"],
     }
   }
   const version_number = args?.version_number ?? args?.versionNumber
   if version_number == nil {
-    return __err("missing_version_number", "confluence page update import requires `version_number`")
+    return __err(
+      "missing_version_number",
+      "confluence page update import requires `version_number`",
+    )
   }
   return {
     provider: CONFLUENCE_PROVIDER_ID,
@@ -406,7 +441,10 @@ pub fn artifact_import_request(args = nil) {
       body: {representation: representation, value: body},
       version: {number: version_number, message: args?.message},
     },
-    media: {uri: args?.uri ?? args?.path, mime_type: args?.mime_type ?? args?.mimeType ?? "text/html"},
+    media: {
+      uri: args?.uri ?? args?.path,
+      mime_type: args?.mime_type ?? args?.mimeType ?? "text/html",
+    },
     scopes: ["write:page:confluence"],
   }
 }
@@ -448,7 +486,10 @@ fn __request_for_method(method, args, cfg) {
           status: __text(args?.status ?? "current"),
           title: unwrap(title),
           parentId: args?.parent_id ?? args?.parentId,
-          body: {representation: __text(args?.representation ?? "storage"), value: __text(args?.body ?? "")},
+          body: {
+            representation: __text(args?.representation ?? "storage"),
+            value: __text(args?.body ?? ""),
+          },
         },
         cfg,
         {},
@@ -476,7 +517,10 @@ fn __request_for_method(method, args, cfg) {
           id: unwrap(page_id),
           status: __text(args?.status ?? "current"),
           title: unwrap(title),
-          body: {representation: __text(args?.representation ?? "storage"), value: __text(args?.body ?? "")},
+          body: {
+            representation: __text(args?.representation ?? "storage"),
+            value: __text(args?.body ?? ""),
+          },
           version: {number: version_number, message: args?.message},
         },
         cfg,
@@ -595,7 +639,8 @@ fn __confluence_request(request) {
   const text = http_response.body ?? ""
   const content_type = lowercase(__text(__header(http_response.headers ?? {}, "content-type")))
   if http_response.status >= 200 && http_response.status < 300 && !contains(content_type, "json")
-    && text != "" {
+    && text
+    != "" {
     return {bytes: text, headers: http_response.headers ?? {}}
   }
   const decoded = try {
@@ -618,7 +663,10 @@ fn __confluence_request(request) {
         status: http_response.status,
         code: payload?.errorKey ?? payload?.code ?? "confluence_error",
         message: payload?.message
-          ?? ("Confluence API request failed with status " + to_string(http_response.status)),
+          ?? ("Confluence API request failed with status "
+          + to_string(
+          http_response.status,
+        )),
         provider: CONFLUENCE_PROVIDER_ID,
       },
     )
@@ -627,7 +675,9 @@ fn __confluence_request(request) {
 }
 
 fn __config(args) {
-  const access_token = __text(args?.access_token ?? args?.token ?? CONFLUENCE_STATE.ctx?.access_token)
+  const access_token = __text(
+    args?.access_token ?? args?.token ?? CONFLUENCE_STATE.ctx?.access_token,
+  )
   if access_token == "" {
     return __err("missing_access_token", "confluence connector requires access_token")
   }
@@ -654,7 +704,8 @@ fn __base_url(args) {
   }
   return __text(
     args?.site_base_url ?? args?.siteBaseUrl ?? args?.base_url ?? args?.baseUrl
-      ?? CONFLUENCE_STATE.ctx?.site_base_url
+      ?? CONFLUENCE_STATE.ctx
+      ?.site_base_url
       ?? CONFLUENCE_STATE.ctx?.base_url
       ?? CONFLUENCE_DEFAULT_SITE_BASE_URL,
   )
@@ -695,7 +746,8 @@ fn __confluence_query(args) {
 fn __query_key(key) {
   const text = __text(key)
   if text == "page_id" || text == "pageId" || text == "attachment_id" || text == "attachmentId"
-    || text == "space_id"
+    || text
+    == "space_id"
     || text == "spaceId"
     || text == "title"
     || text == "body"
@@ -732,7 +784,10 @@ fn __request_deny_keys() {
 
 fn __webhook_auth_status(raw) {
   const authorization = __text(__header(raw?.headers ?? {}, "authorization"))
-  const required = raw?.jwt_required ?? raw?.metadata?.jwt_required ?? CONFLUENCE_STATE.ctx?.jwt_required ?? false
+  const required = raw?.jwt_required ?? raw?.metadata?.jwt_required
+    ?? CONFLUENCE_STATE.ctx
+    ?.jwt_required
+    ?? false
   if authorization == "" {
     if required {
       return __err("missing_authorization", "missing Confluence webhook Authorization JWT header")
@@ -740,7 +795,10 @@ fn __webhook_auth_status(raw) {
     return Ok({state: "unsigned", scheme: "atlassian-connect-jwt"})
   }
   if !starts_with(lowercase(authorization), "jwt ") {
-    return __err("invalid_authorization", "Confluence webhook Authorization header must use JWT scheme")
+    return __err(
+      "invalid_authorization",
+      "Confluence webhook Authorization header must use JWT scheme",
+    )
   }
   return Ok({state: "present", scheme: "atlassian-connect-jwt"})
 }
@@ -853,7 +911,8 @@ fn __validate_base_url(url) {
 fn __attachment_download_url(args, cfg) {
   const raw = __text(
     args?.download_url ?? args?.downloadUrl ?? args?.download_link ?? args?.downloadLink
-      ?? args?._links?.download,
+      ?? args
+      ?._links?.download,
   )
   if raw == "" {
     return __err("missing_download_link", "confluence attachment export requires a download link")
@@ -942,7 +1001,10 @@ fn __attachment_ref(attachment_id, attachment) {
     ref: "confluence://attachments/" + __text(attachment_id),
     title: attachment?.title ?? attachment?.fileName,
     page_id: attachment?.pageId,
-    mime_type: attachment?.mediaType ?? __mime_type_from_name(attachment?.title ?? attachment?.fileName),
+    mime_type: attachment?.mediaType
+      ?? __mime_type_from_name(
+      attachment?.title ?? attachment?.fileName,
+    ),
     download_link: attachment?.downloadLink ?? attachment?._links?.download,
   }
 }
@@ -992,7 +1054,8 @@ fn __header(headers, name) {
 }
 
 fn __event_dedupe_key(event, version, source_id) {
-  return CONFLUENCE_PROVIDER_ID + ":" + __text(event) + ":" + __text(version) + ":" + __text(source_id)
+  return CONFLUENCE_PROVIDER_ID + ":" + __text(event) + ":" + __text(version) + ":"
+    + __text(source_id)
 }
 
 fn __text(value) {

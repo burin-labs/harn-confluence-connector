@@ -9,7 +9,9 @@ import {
 pipeline default() {
   assert_confluence_interface()
   const body = confluence_page_webhook_body()
-  const event = normalize_inbound({body_text: body, headers: confluence_jwt_headers(), jwt_required: true})
+  const event = normalize_inbound(
+    {body_text: body, headers: confluence_jwt_headers(), jwt_required: true},
+  )
   expect_eq(event.type, "event", "Confluence webhook envelope type")
   expect_eq(event.event.kind, "confluence.webhook.page_created", "Confluence event kind")
   expect_eq(event.event.auth_status.state, "present", "JWT auth header recorded")
