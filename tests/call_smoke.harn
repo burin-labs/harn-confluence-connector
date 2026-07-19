@@ -13,7 +13,9 @@ pipeline default() {
   shutdown()
   const normalized = init("invalid-context")
   expect_eq(normalized.ctx, {}, "non-dict init context is normalized")
-  const initialized = init({access_token: "secret_access", site_base_url: "https://example.atlassian.net"})
+  const initialized = init(
+    {access_token: "secret_access", site_base_url: "https://example.atlassian.net"},
+  )
   expect_eq(initialized.ctx.access_token, "secret_access", "dict init context is retained")
   http_mock_clear()
   const base = "https://example.atlassian.net"
@@ -24,23 +26,27 @@ pipeline default() {
       responses: [
         {
           status: 200,
-          body: "{\"id\":\"123\",\"title\":\"Report\",\"spaceId\":\"456\",\"version\":{\"number\":7}}",
+          body:
+            "{\"id\":\"123\",\"title\":\"Report\",\"spaceId\":\"456\",\"version\":{\"number\":7}}",
           headers: {"content-type": "application/json"},
         },
         {
           status: 200,
-          body: "{\"results\":[{\"id\":\"123\",\"title\":\"Report\"}],\"_links\":{\"next\":\"/wiki/api/v2/pages?cursor=next\"}}",
+          body:
+            "{\"results\":[{\"id\":\"123\",\"title\":\"Report\"}],\"_links\":{\"next\":\"/wiki/api/v2/pages?cursor=next\"}}",
           headers: {"content-type": "application/json"},
         },
         {
           status: 200,
-          body: "{\"results\":[{\"id\":\"att_1\",\"title\":\"report.pdf\",\"mediaType\":\"application/pdf\",\"downloadLink\":\"/wiki/download/attachments/123/report.pdf\"}]}",
+          body:
+            "{\"results\":[{\"id\":\"att_1\",\"title\":\"report.pdf\",\"mediaType\":\"application/pdf\",\"downloadLink\":\"/wiki/download/attachments/123/report.pdf\"}]}",
           headers: {"content-type": "application/json"},
         },
         {status: 200, body: "PDF-BYTES", headers: {"content-type": "application/pdf"}},
         {
           status: 200,
-          body: "{\"results\":[{\"content\":{\"id\":\"123\",\"title\":\"Report\",\"version\":{\"number\":8,\"when\":\"2026-07-06T12:00:00Z\"}}}]}",
+          body:
+            "{\"results\":[{\"content\":{\"id\":\"123\",\"title\":\"Report\",\"version\":{\"number\":8,\"when\":\"2026-07-06T12:00:00Z\"}}}]}",
           headers: {"content-type": "application/json"},
         },
         {
@@ -60,16 +66,28 @@ pipeline default() {
   expect_eq(page.id, "123", "page response")
   call("pages.list", {limit: 10, body_format: "view"})
   call("attachments.for_page", {page_id: "123", limit: 50})
-  const downloaded = call("attachments.download", {download_link: "/wiki/download/attachments/123/report.pdf"})
+  const downloaded = call(
+    "attachments.download",
+    {download_link: "/wiki/download/attachments/123/report.pdf"},
+  )
   expect_eq(downloaded.bytes, "PDF-BYTES", "download bytes response")
   call("search.cql", {cql: "type=page", limit: 25})
-  const create_rejected = call("pages.create", {space_id: "456", title: "New Report", body: "<p>Hi</p>"})
+  const create_rejected = call(
+    "pages.create",
+    {space_id: "456", title: "New Report", body: "<p>Hi</p>"},
+  )
   expect(is_err(create_rejected), "mutating Confluence page create requires approval")
   expect_eq(unwrap_err(create_rejected).code, "approval_required", "approval code")
   call("pages.create", {space_id: "456", title: "New Report", body: "<p>Hi</p>", _approved: true})
   call(
     "pages.update",
-    {page_id: "123", title: "Updated Report", body: "<p>Hi</p>", version_number: 8, _approved: true},
+    {
+      page_id: "123",
+      title: "Updated Report",
+      body: "<p>Hi</p>",
+      version_number: 8,
+      _approved: true,
+    },
   )
   const calls = http_mock_calls({include_sensitive: true})
   expect_eq(len(calls), 7, "all expected outbound methods dispatched")
@@ -138,7 +156,10 @@ pipeline default() {
   )
   expect_eq(update_import.method, "PUT", "import update method")
   expect_eq(update_import.body.version.number, 9, "import update version")
-  const descriptor = request_descriptor("pages.get", {access_token: "secret_access", page_id: "123"})
+  const descriptor = request_descriptor(
+    "pages.get",
+    {access_token: "secret_access", page_id: "123"},
+  )
   expect(!is_err(descriptor), "page request descriptor builds")
   expect_eq(unwrap(descriptor).url, base + "/wiki/api/v2/pages/123", "page request URL")
   const bad_host = call(

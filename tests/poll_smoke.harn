@@ -30,12 +30,14 @@ pipeline default() {
       responses: [
         {
           status: 200,
-          body: "{\"results\":[{\"content\":{\"id\":\"123\",\"title\":\"Report\",\"spaceId\":\"456\",\"version\":{\"number\":7,\"when\":\"2026-07-06T12:00:00Z\"}}}]}",
+          body:
+            "{\"results\":[{\"content\":{\"id\":\"123\",\"title\":\"Report\",\"spaceId\":\"456\",\"version\":{\"number\":7,\"when\":\"2026-07-06T12:00:00Z\"}}}]}",
           headers: {"content-type": "application/json"},
         },
         {
           status: 200,
-          body: "{\"results\":[{\"content\":{\"id\":\"123\",\"title\":\"Report\",\"spaceId\":\"456\",\"version\":{\"number\":7,\"when\":\"2026-07-06T12:00:00Z\"}}}]}",
+          body:
+            "{\"results\":[{\"content\":{\"id\":\"123\",\"title\":\"Report\",\"spaceId\":\"456\",\"version\":{\"number\":7,\"when\":\"2026-07-06T12:00:00Z\"}}}]}",
           headers: {"content-type": "application/json"},
         },
         {
@@ -45,7 +47,8 @@ pipeline default() {
         },
         {
           status: 200,
-          body: "{\"results\":[{\"content\":{\"id\":\"123\",\"title\":\"Report v2\",\"spaceId\":\"456\",\"version\":{\"number\":8,\"when\":\"2026-07-06T13:00:00Z\"}}}]}",
+          body:
+            "{\"results\":[{\"content\":{\"id\":\"123\",\"title\":\"Report v2\",\"spaceId\":\"456\",\"version\":{\"number\":8,\"when\":\"2026-07-06T13:00:00Z\"}}}]}",
           headers: {"content-type": "application/json"},
         },
       ],
