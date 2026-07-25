@@ -1,11 +1,15 @@
 # AGENTS.md
 
+Pure-Harn Confluence connector for Atlassian Cloud pages and attachments.
+
 Shared connector authoring rules live in the Harn guide:
 
 - [Connector authoring guide](https://github.com/burin-labs/harn/blob/main/docs/src/connectors/authoring.md)
 
 Put shared connector guidance in the Harn guide and keep only
-Confluence-specific notes here.
+provider-specific notes and local hazards here.
+
+`CLAUDE.md` is a symlink to this file. Edit `AGENTS.md` only.
 
 ## Provider notes
 
