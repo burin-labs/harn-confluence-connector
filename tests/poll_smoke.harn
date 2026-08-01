@@ -17,13 +17,13 @@ fn poll_ctx(cursor = nil, state = nil) {
   }
 }
 
-pipeline default() {
-  egress_policy({allow: ["example.atlassian.net"], default: "deny"})
-  shutdown()
-  init({access_token: "secret_access", site_base_url: "https://example.atlassian.net"})
-  http_mock_clear()
+pipeline default(harness: Harness) {
+  harness.net.egress_policy({allow: ["example.atlassian.net"], default: "deny"})
+  shutdown(harness)
+  init(harness, {access_token: "secret_access", site_base_url: "https://example.atlassian.net"})
+  harness.testing.http_mock_clear()
   const base = "https://example.atlassian.net"
-  http_mock(
+  harness.testing.http_mock(
     "*",
     "https://example.atlassian.net/*",
     {
@@ -54,23 +54,23 @@ pipeline default() {
       ],
     },
   )
-  const first = poll_tick(poll_ctx())
+  const first = poll_tick(harness, poll_ctx())
   expect_eq(len(first.events), 1, "first tick emits changed page")
   expect_eq(first.events[0].kind, "confluence.search.page.changed", "poll event kind")
   expect_eq(first.events[0].payload.page_id, "123", "poll page id")
   expect_eq(first.cursor.since, "2026-07-06T12:00:00Z", "cursor advances")
   expect(first.state.poll_cache.get("confluence.search:123") != nil, "first tick persists snapshot")
-  const duplicate = poll_tick(poll_ctx(first.cursor, first.state))
+  const duplicate = poll_tick(harness, poll_ctx(first.cursor, first.state))
   expect_eq(len(duplicate.events), 0, "duplicate page snapshot is skipped")
   expect_eq(duplicate.cursor.since, "2026-07-06T12:00:00Z", "duplicate keeps cursor")
-  const failed = poll_tick(poll_ctx(duplicate.cursor, duplicate.state))
+  const failed = poll_tick(harness, poll_ctx(duplicate.cursor, duplicate.state))
   expect(is_err(failed), "retryable Confluence failures return Err without advancing local state")
   expect_eq(unwrap_err(failed).code, "unavailable", "retry error preserves Confluence code")
-  const retried = poll_tick(poll_ctx(duplicate.cursor, duplicate.state))
+  const retried = poll_tick(harness, poll_ctx(duplicate.cursor, duplicate.state))
   expect_eq(len(retried.events), 1, "retry emits updated page")
   expect_eq(retried.events[0].payload.title, "Report v2", "updated title")
   expect_eq(retried.cursor.since, "2026-07-06T13:00:00Z", "retry cursor advances")
-  const calls = http_mock_calls({include_sensitive: true})
+  const calls = harness.testing.http_mock_calls({include_sensitive: true})
   expect_eq(len(calls), 4, "one Confluence request per tick")
   expect(calls[0].url.starts_with(base + "/wiki/rest/api/content/search?"), "poll URL prefix")
   expect(calls[0].url.contains("limit=25"), "poll limit")
@@ -83,6 +83,6 @@ pipeline default() {
     "second CQL cursor",
   )
   expect_eq(calls[0].headers.authorization, "Bearer secret_access", "authorization header sent")
-  http_mock_clear()
-  shutdown()
+  harness.testing.http_mock_clear()
+  shutdown(harness)
 }

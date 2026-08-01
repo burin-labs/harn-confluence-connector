@@ -92,7 +92,7 @@ pub fn payload_schema() {
 }
 
 /** Initialize connector state with orchestrator context. */
-pub fn init(ctx = nil) {
+pub fn init(harness: Harness, ctx = nil) {
   CONFLUENCE_STATE = CONFLUENCE_STATE
     + {
     initialized: true,
@@ -106,7 +106,7 @@ pub fn init(ctx = nil) {
 }
 
 /** Activate webhook and poll bindings. */
-pub fn activate(bindings = []) {
+pub fn activate(harness: Harness, bindings = []) {
   let webhook_bindings = {}
   let poll_bindings = {}
   for binding in bindings ?? [] {
@@ -141,7 +141,7 @@ pub fn activate(bindings = []) {
 }
 
 /** Clear connector lifecycle state. */
-pub fn shutdown() {
+pub fn shutdown(harness: Harness) {
   CONFLUENCE_STATE = {
     initialized: false,
     active: false,
@@ -159,7 +159,7 @@ pub fn shutdown() {
  * This connector records JWT presence and can require it; full Connect JWT
  * verification belongs at the hosting boundary that owns app installation keys.
  */
-pub fn normalize_inbound(raw) {
+pub fn normalize_inbound(harness: Harness, raw) {
   const auth = __webhook_auth_status(raw)
   if is_err(auth) {
     return __reject(401, unwrap_err(auth).code, unwrap_err(auth).message)
@@ -218,7 +218,7 @@ pub fn normalize_inbound(raw) {
 }
 
 /** Dispatch one Confluence outbound method. */
-pub fn call(method, args = nil) {
+pub fn call(harness: Harness, method, args = nil) {
   const name = __canonical_method(method)
   if name == "artifact.export_request" {
     return artifact_export_request(args ?? {})
@@ -237,7 +237,7 @@ pub fn call(method, args = nil) {
   if is_err(request) {
     return request
   }
-  return __confluence_request(unwrap(request))
+  return __confluence_request(harness, unwrap(request))
 }
 
 /** Build the deterministic HTTP descriptor for a Confluence method. */
@@ -250,7 +250,7 @@ pub fn request_descriptor(method, args = nil) {
 }
 
 /** Poll Confluence CQL search and normalize changed pages from Harn-managed state. */
-pub fn poll_tick(ctx) {
+pub fn poll_tick(harness: Harness, ctx) {
   const cfg = __config((ctx?.binding?.config ?? {}) + (ctx?.binding ?? {}) + (ctx ?? {}))
   if is_err(cfg) {
     return cfg
@@ -266,7 +266,7 @@ pub fn poll_tick(ctx) {
   if is_err(request) {
     return request
   }
-  const response = __confluence_request(unwrap(request))
+  const response = __confluence_request(harness, unwrap(request))
   if is_err(response) {
     return response
   }
@@ -628,7 +628,7 @@ fn __binary_request(method, url, cfg) {
   return {method: method, url: url, headers: __headers(cfg)}
 }
 
-fn __confluence_request(request) {
+fn __confluence_request(harness: Harness, request) {
   const response = try {
     harness.net.request(request.method, request.url, {headers: request.headers, body: request.body})
   }

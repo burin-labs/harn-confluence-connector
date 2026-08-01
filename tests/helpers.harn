@@ -1,10 +1,11 @@
 import { activate, methods, payload_schema, provider_id } from "../src/lib"
 
-pub fn assert_confluence_interface() {
+pub fn assert_confluence_interface(harness: Harness) {
   require provider_id() == "confluence", "provider id"
   require len(methods()) >= 10, "method surface"
   require payload_schema().harn_schema_name == "ConfluenceEventPayload", "payload schema name"
   const active = activate(
+    harness,
     [
       {id: "confluence.webhook", kind: "webhook", jwt_required: true},
       {
