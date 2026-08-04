@@ -628,9 +628,9 @@ fn __binary_request(method, url, cfg) {
   return {method: method, url: url, headers: __headers(cfg)}
 }
 
-fn __confluence_request(harness: HarnessNet, request) {
+fn __confluence_request(net: HarnessNet, request) {
   const response = try {
-    harness.request(request.method, request.url, {headers: request.headers, body: request.body})
+    net.request(request.method, request.url, {headers: request.headers, body: request.body})
   }
   if is_err(response) {
     return __err("transport", to_string(unwrap_err(response)))
