@@ -17,7 +17,7 @@ fn poll_ctx(cursor = nil, state = nil) {
   }
 }
 
-pipeline default(harness: Harness) {
+pipeline test_poll_smoke(harness: Harness) {
   harness.net.egress_policy({allow: ["example.atlassian.net"], default: "deny"})
   shutdown(harness)
   init(harness, {access_token: "secret_access", site_base_url: "https://example.atlassian.net"})
