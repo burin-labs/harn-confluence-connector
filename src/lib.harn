@@ -237,7 +237,7 @@ pub fn call(harness: Harness, method, args = nil) {
   if is_err(request) {
     return request
   }
-  return __confluence_request(harness, unwrap(request))
+  return __confluence_request(harness.net, unwrap(request))
 }
 
 /** Build the deterministic HTTP descriptor for a Confluence method. */
@@ -266,7 +266,7 @@ pub fn poll_tick(harness: Harness, ctx) {
   if is_err(request) {
     return request
   }
-  const response = __confluence_request(harness, unwrap(request))
+  const response = __confluence_request(harness.net, unwrap(request))
   if is_err(response) {
     return response
   }
@@ -628,9 +628,9 @@ fn __binary_request(method, url, cfg) {
   return {method: method, url: url, headers: __headers(cfg)}
 }
 
-fn __confluence_request(harness: Harness, request) {
+fn __confluence_request(harness: HarnessNet, request) {
   const response = try {
-    harness.net.request(request.method, request.url, {headers: request.headers, body: request.body})
+    harness.request(request.method, request.url, {headers: request.headers, body: request.body})
   }
   if is_err(response) {
     return __err("transport", to_string(unwrap_err(response)))

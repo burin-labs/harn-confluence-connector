@@ -6,7 +6,7 @@ import {
   confluence_page_webhook_body,
 } from "./helpers"
 
-pipeline default(harness: Harness) {
+pipeline test_normalize_smoke(harness: Harness) {
   assert_confluence_interface(harness)
   const body = confluence_page_webhook_body()
   const event = normalize_inbound(
