@@ -95,13 +95,13 @@ pub fn payload_schema() {
 pub fn init(harness: Harness, ctx = nil) {
   CONFLUENCE_STATE = CONFLUENCE_STATE
     + {
-    initialized: true,
-    ctx: if type_of(ctx) == "dict" {
-      ctx
-    } else {
-      {}
-    },
-  }
+      initialized: true,
+      ctx: if type_of(ctx) == "dict" {
+        ctx
+      } else {
+        {}
+      },
+    }
   return CONFLUENCE_STATE
 }
 
@@ -113,9 +113,7 @@ pub fn activate(harness: Harness, bindings = []) {
     const binding_id = __text(
       binding?.binding_id ?? binding?.id
         ?? ("binding-"
-        + to_string(
-        len(webhook_bindings.keys()) + len(poll_bindings.keys()),
-      )),
+          + to_string(len(webhook_bindings.keys()) + len(poll_bindings.keys()))),
     )
     const kind = __text(binding?.kind ?? "webhook")
     if kind == "webhook" {
@@ -127,11 +125,7 @@ pub fn activate(harness: Harness, bindings = []) {
     }
   }
   CONFLUENCE_STATE = CONFLUENCE_STATE
-    + {
-    active: true,
-    webhook_bindings: webhook_bindings,
-    poll_bindings: poll_bindings,
-  }
+    + {active: true, webhook_bindings: webhook_bindings, poll_bindings: poll_bindings}
   return {
     provider: CONFLUENCE_PROVIDER_ID,
     bindings: len(webhook_bindings.keys()) + len(poll_bindings.keys()),
@@ -298,24 +292,24 @@ pub fn poll_tick(harness: Harness, ctx) {
     const event_kind = "confluence.search.page.changed"
     events = events
       + [
-      {
-        provider: CONFLUENCE_PROVIDER_ID,
-        kind: event_kind,
-        occurred_at: modified_at,
-        dedupe_key: __event_dedupe_key(event_kind, __text(version?.number), page_id),
-        payload: {
+        {
           provider: CONFLUENCE_PROVIDER_ID,
-          event: event_kind,
-          page_id: page_id,
-          space_id: content?.spaceId,
-          space_key: content?.space?.key,
-          title: content?.title,
-          version: version,
-          raw: entry,
+          kind: event_kind,
+          occurred_at: modified_at,
+          dedupe_key: __event_dedupe_key(event_kind, __text(version?.number), page_id),
+          payload: {
+            provider: CONFLUENCE_PROVIDER_ID,
+            event: event_kind,
+            page_id: page_id,
+            space_id: content?.spaceId,
+            space_key: content?.space?.key,
+            title: content?.title,
+            version: version,
+            raw: entry,
+          },
+          source_refs: [__page_ref(page_id, content)],
         },
-        source_refs: [__page_ref(page_id, content)],
-      },
-    ]
+      ]
   }
   return {
     events: events,
@@ -342,7 +336,7 @@ pub fn artifact_export_request(args = nil) {
       artifact: {
         uri: args?.uri
           ?? ("confluence://attachments/"
-          + __text(args?.attachment_id ?? args?.attachmentId)),
+            + __text(args?.attachment_id ?? args?.attachmentId)),
         name: __text(args?.name ?? args?.title ?? "confluence-attachment"),
         mime_type: __text(args?.mime_type ?? args?.mediaType ?? __mime_type_from_name(args?.name)),
         source_ref: __attachment_ref(__text(args?.attachment_id ?? args?.attachmentId), args ?? {}),
@@ -640,7 +634,7 @@ fn __confluence_request(net: HarnessNet, request) {
   const content_type = lowercase(__text(__header(http_response.headers ?? {}, "content-type")))
   if http_response.status >= 200 && http_response.status < 300 && !contains(content_type, "json")
     && text
-    != "" {
+      != "" {
     return {bytes: text, headers: http_response.headers ?? {}}
   }
   const decoded = try {
@@ -664,9 +658,7 @@ fn __confluence_request(net: HarnessNet, request) {
         code: payload?.errorKey ?? payload?.code ?? "confluence_error",
         message: payload?.message
           ?? ("Confluence API request failed with status "
-          + to_string(
-          http_response.status,
-        )),
+            + to_string(http_response.status)),
         provider: CONFLUENCE_PROVIDER_ID,
       },
     )
@@ -704,8 +696,7 @@ fn __base_url(args) {
   }
   return __text(
     args?.site_base_url ?? args?.siteBaseUrl ?? args?.base_url ?? args?.baseUrl
-      ?? CONFLUENCE_STATE.ctx
-      ?.site_base_url
+      ?? CONFLUENCE_STATE.ctx?.site_base_url
       ?? CONFLUENCE_STATE.ctx?.base_url
       ?? CONFLUENCE_DEFAULT_SITE_BASE_URL,
   )
@@ -747,7 +738,7 @@ fn __query_key(key) {
   const text = __text(key)
   if text == "page_id" || text == "pageId" || text == "attachment_id" || text == "attachmentId"
     || text
-    == "space_id"
+      == "space_id"
     || text == "spaceId"
     || text == "title"
     || text == "body"
@@ -785,8 +776,7 @@ fn __request_deny_keys() {
 fn __webhook_auth_status(raw) {
   const authorization = __text(__header(raw?.headers ?? {}, "authorization"))
   const required = raw?.jwt_required ?? raw?.metadata?.jwt_required
-    ?? CONFLUENCE_STATE.ctx
-    ?.jwt_required
+    ?? CONFLUENCE_STATE.ctx?.jwt_required
     ?? false
   if authorization == "" {
     if required {
@@ -911,8 +901,7 @@ fn __validate_base_url(url) {
 fn __attachment_download_url(args, cfg) {
   const raw = __text(
     args?.download_url ?? args?.downloadUrl ?? args?.download_link ?? args?.downloadLink
-      ?? args
-      ?._links?.download,
+      ?? args?._links?.download,
   )
   if raw == "" {
     return __err("missing_download_link", "confluence attachment export requires a download link")
@@ -1002,9 +991,7 @@ fn __attachment_ref(attachment_id, attachment) {
     title: attachment?.title ?? attachment?.fileName,
     page_id: attachment?.pageId,
     mime_type: attachment?.mediaType
-      ?? __mime_type_from_name(
-      attachment?.title ?? attachment?.fileName,
-    ),
+      ?? __mime_type_from_name(attachment?.title ?? attachment?.fileName),
     download_link: attachment?.downloadLink ?? attachment?._links?.download,
   }
 }
