@@ -92,7 +92,7 @@ pub fn payload_schema() {
 }
 
 /** Initialize connector state with orchestrator context. */
-pub fn init(harness: Harness, ctx = nil) {
+pub fn init(harness: Harness, ctx: any = nil) {
   CONFLUENCE_STATE = CONFLUENCE_STATE
     + {
       initialized: true,
@@ -106,7 +106,7 @@ pub fn init(harness: Harness, ctx = nil) {
 }
 
 /** Activate webhook and poll bindings. */
-pub fn activate(harness: Harness, bindings = []) {
+pub fn activate(harness: Harness, bindings: any = []) {
   let webhook_bindings = {}
   let poll_bindings = {}
   for binding in bindings ?? [] {
@@ -153,7 +153,7 @@ pub fn shutdown(harness: Harness) {
  * This connector records JWT presence and can require it; full Connect JWT
  * verification belongs at the hosting boundary that owns app installation keys.
  */
-pub fn normalize_inbound(harness: Harness, raw) {
+pub fn normalize_inbound(harness: Harness, raw: any) {
   const auth = __webhook_auth_status(raw)
   if is_err(auth) {
     return __reject(401, unwrap_err(auth).code, unwrap_err(auth).message)
@@ -212,7 +212,7 @@ pub fn normalize_inbound(harness: Harness, raw) {
 }
 
 /** Dispatch one Confluence outbound method. */
-pub fn call(harness: Harness, method, args = nil) {
+pub fn call(harness: Harness, method: any, args: any = nil) {
   const name = __canonical_method(method)
   if name == "artifact.export_request" {
     return artifact_export_request(args ?? {})
@@ -235,7 +235,7 @@ pub fn call(harness: Harness, method, args = nil) {
 }
 
 /** Build the deterministic HTTP descriptor for a Confluence method. */
-pub fn request_descriptor(method, args = nil) {
+pub fn request_descriptor(method: any, args: any = nil) {
   const cfg = __config(args ?? {})
   if is_err(cfg) {
     return cfg
@@ -244,7 +244,7 @@ pub fn request_descriptor(method, args = nil) {
 }
 
 /** Poll Confluence CQL search and normalize changed pages from Harn-managed state. */
-pub fn poll_tick(harness: Harness, ctx) {
+pub fn poll_tick(harness: Harness, ctx: any) {
   const cfg = __config((ctx?.binding?.config ?? {}) + (ctx?.binding ?? {}) + (ctx ?? {}))
   if is_err(cfg) {
     return cfg
@@ -319,7 +319,7 @@ pub fn poll_tick(harness: Harness, ctx) {
 }
 
 /** Build a deterministic Confluence export/download descriptor for an artifact. */
-pub fn artifact_export_request(args = nil) {
+pub fn artifact_export_request(args: any = nil) {
   const cfg = __descriptor_config(args ?? {})
   if is_err(cfg) {
     return cfg
@@ -380,7 +380,7 @@ pub fn artifact_export_request(args = nil) {
 }
 
 /** Build a deterministic Confluence create/update page descriptor for a local artifact. */
-pub fn artifact_import_request(args = nil) {
+pub fn artifact_import_request(args: any = nil) {
   const cfg = __descriptor_config(args ?? {})
   if is_err(cfg) {
     return cfg
@@ -443,7 +443,7 @@ pub fn artifact_import_request(args = nil) {
   }
 }
 
-fn __request_for_method(method, args, cfg) {
+fn __request_for_method(method: any, args: any, cfg: any) {
   if method == "pages.list" {
     return Ok(__json_request("GET", cfg.base_url + "/wiki/api/v2/pages", nil, cfg, args))
   }
@@ -602,7 +602,7 @@ fn __request_for_method(method, args, cfg) {
   )
 }
 
-fn __json_request(method, url, body, cfg, args) {
+fn __json_request(method: any, url: any, body: any, cfg: any, args: any) {
   const query = __confluence_query(args)
   return {
     method: method,
@@ -618,11 +618,11 @@ fn __json_request(method, url, body, cfg, args) {
   }
 }
 
-fn __binary_request(method, url, cfg) {
+fn __binary_request(method: any, url: any, cfg: any) {
   return {method: method, url: url, headers: __headers(cfg)}
 }
 
-fn __confluence_request(net: HarnessNet, request) {
+fn __confluence_request(net: HarnessNet, request: any) {
   const response = try {
     net.request(request.method, request.url, {headers: request.headers, body: request.body})
   }
@@ -666,7 +666,7 @@ fn __confluence_request(net: HarnessNet, request) {
   return payload
 }
 
-fn __config(args) {
+fn __config(args: any) {
   const access_token = __text(
     args?.access_token ?? args?.token ?? CONFLUENCE_STATE.ctx?.access_token,
   )
@@ -680,7 +680,7 @@ fn __config(args) {
   return Ok(unwrap(descriptor) + {access_token: access_token})
 }
 
-fn __descriptor_config(args) {
+fn __descriptor_config(args: any) {
   const base_url = __base_url(args)
   const checked = __validate_base_url(base_url)
   if is_err(checked) {
@@ -689,7 +689,7 @@ fn __descriptor_config(args) {
   return Ok({base_url: __strip_trailing_slash(unwrap(checked))})
 }
 
-fn __base_url(args) {
+fn __base_url(args: any) {
   const cloud_id = __text(args?.cloud_id ?? args?.cloudId ?? CONFLUENCE_STATE.ctx?.cloud_id)
   if cloud_id != "" {
     return "https://api.atlassian.com/ex/confluence/" + url_encode(cloud_id)
@@ -702,11 +702,11 @@ fn __base_url(args) {
   )
 }
 
-fn __headers(cfg) {
+fn __headers(cfg: any) {
   return {Authorization: "Bearer " + cfg.access_token}
 }
 
-fn __confluence_query(args) {
+fn __confluence_query(args: any) {
   let query = {}
   for key in (args ?? {}).keys() {
     if contains(__request_deny_keys(), key) || starts_with(key, "_") {
@@ -734,7 +734,7 @@ fn __confluence_query(args) {
   return "?" + parts.join("&")
 }
 
-fn __query_key(key) {
+fn __query_key(key: any) {
   const text = __text(key)
   if text == "page_id" || text == "pageId" || text == "attachment_id" || text == "attachmentId"
     || text
@@ -773,7 +773,7 @@ fn __request_deny_keys() {
   ]
 }
 
-fn __webhook_auth_status(raw) {
+fn __webhook_auth_status(raw: any) {
   const authorization = __text(__header(raw?.headers ?? {}, "authorization"))
   const required = raw?.jwt_required ?? raw?.metadata?.jwt_required
     ?? CONFLUENCE_STATE.ctx?.jwt_required
@@ -793,7 +793,7 @@ fn __webhook_auth_status(raw) {
   return Ok({state: "present", scheme: "atlassian-connect-jwt"})
 }
 
-fn __event_name(payload, raw) {
+fn __event_name(payload: any, raw: any) {
   const direct = __text(payload?.webhookEvent ?? payload?.event ?? payload?.eventType ?? raw?.event)
   if direct.contains(":") {
     const pieces = direct.split(":")
@@ -802,7 +802,7 @@ fn __event_name(payload, raw) {
   return direct
 }
 
-fn __occurred_at(payload) {
+fn __occurred_at(payload: any) {
   const created = __text(payload?.createdAt ?? payload?.updatedAt)
   if created != "" {
     return created
@@ -814,7 +814,7 @@ fn __occurred_at(payload) {
   return nil
 }
 
-fn __body_json(raw) {
+fn __body_json(raw: any) {
   if raw?.body_json != nil {
     return Ok(raw.body_json)
   }
@@ -831,7 +831,7 @@ fn __body_json(raw) {
   return Ok(raw?.body ?? raw ?? {})
 }
 
-fn __canonical_method(method) {
+fn __canonical_method(method: any) {
   const text = __text(method)
   if text == "export_artifact" {
     return "artifact.export_request"
@@ -851,7 +851,7 @@ fn __canonical_method(method) {
   return text
 }
 
-fn __required(args, snake_key) {
+fn __required(args: any, snake_key: any) {
   const camel = __snake_to_camel(snake_key)
   const value = __text(args?.[snake_key] ?? args?.[camel])
   if value == "" {
@@ -860,7 +860,7 @@ fn __required(args, snake_key) {
   return Ok(value)
 }
 
-fn __snake_to_camel(value) {
+fn __snake_to_camel(value: any) {
   if value == "site_base_url" {
     return "siteBaseUrl"
   }
@@ -885,7 +885,7 @@ fn __snake_to_camel(value) {
   return value
 }
 
-fn __validate_base_url(url) {
+fn __validate_base_url(url: any) {
   const text = __strip_trailing_slash(__text(url))
   if !starts_with(lowercase(text), "https://") {
     return __err("invalid_base_url", "confluence base url must be an absolute https URL")
@@ -898,7 +898,7 @@ fn __validate_base_url(url) {
   return __err("disallowed_base_url", "confluence host `" + host + "` is not in the allowlist")
 }
 
-fn __attachment_download_url(args, cfg) {
+fn __attachment_download_url(args: any, cfg: any) {
   const raw = __text(
     args?.download_url ?? args?.downloadUrl ?? args?.download_link ?? args?.downloadLink
       ?? args?._links?.download,
@@ -920,7 +920,7 @@ fn __attachment_download_url(args, cfg) {
   return Ok(absolute)
 }
 
-fn __artifact_page_id(args) {
+fn __artifact_page_id(args: any) {
   const page_id = __text(args?.page_id ?? args?.pageId ?? args?.id)
   if page_id == "" {
     return __err("missing_page_id", "confluence artifact request requires `page_id`")
@@ -928,7 +928,7 @@ fn __artifact_page_id(args) {
   return Ok(page_id)
 }
 
-fn __body_format(format) {
+fn __body_format(format: any) {
   const lower = lowercase(__text(format))
   if lower == "adf" || lower == "atlas_doc_format" {
     return "atlas_doc_format"
@@ -939,7 +939,7 @@ fn __body_format(format) {
   return "view"
 }
 
-fn __page_artifact_name(name, body_format) {
+fn __page_artifact_name(name: any, body_format: any) {
   const text = __text(name)
   if body_format == "atlas_doc_format" {
     if text.ends_with(".json") {
@@ -953,12 +953,12 @@ fn __page_artifact_name(name, body_format) {
   return text + ".html"
 }
 
-fn __is_removed_event(event) {
+fn __is_removed_event(event: any) {
   const lower = lowercase(__text(event))
   return lower.contains("removed") || lower.contains("trashed") || lower.contains("archived")
 }
 
-fn __source_refs(page_id, attachment_id, page, attachment) {
+fn __source_refs(page_id: any, attachment_id: any, page: any, attachment: any) {
   let refs = []
   if page_id != "" {
     refs = refs + [__page_ref(page_id, page)]
@@ -969,7 +969,7 @@ fn __source_refs(page_id, attachment_id, page, attachment) {
   return refs
 }
 
-fn __page_ref(page_id, page) {
+fn __page_ref(page_id: any, page: any) {
   return {
     provider: CONFLUENCE_PROVIDER_ID,
     kind: "confluence_page",
@@ -982,7 +982,7 @@ fn __page_ref(page_id, page) {
   }
 }
 
-fn __attachment_ref(attachment_id, attachment) {
+fn __attachment_ref(attachment_id: any, attachment: any) {
   return {
     provider: CONFLUENCE_PROVIDER_ID,
     kind: "confluence_attachment",
@@ -996,7 +996,7 @@ fn __attachment_ref(attachment_id, attachment) {
   }
 }
 
-fn __mime_type_from_name(name) {
+fn __mime_type_from_name(name: any) {
   const lower = lowercase(__text(name))
   if lower.ends_with(".pdf") {
     return "application/pdf"
@@ -1022,7 +1022,7 @@ fn __mime_type_from_name(name) {
   return "application/octet-stream"
 }
 
-fn __strip_trailing_slash(value) {
+fn __strip_trailing_slash(value: any) {
   const text = __text(value)
   if text.ends_with("/") {
     return text[0:len(text) - 1]
@@ -1030,7 +1030,7 @@ fn __strip_trailing_slash(value) {
   return text
 }
 
-fn __header(headers, name) {
+fn __header(headers: any, name: any) {
   const wanted = lowercase(name)
   for entry in (headers ?? {}).entries() {
     if lowercase(trim(to_string(entry.key))) == wanted {
@@ -1040,22 +1040,22 @@ fn __header(headers, name) {
   return nil
 }
 
-fn __event_dedupe_key(event, version, source_id) {
+fn __event_dedupe_key(event: any, version: any, source_id: any) {
   return CONFLUENCE_PROVIDER_ID + ":" + __text(event) + ":" + __text(version) + ":"
     + __text(source_id)
 }
 
-fn __text(value) {
+fn __text(value: any) {
   if value == nil {
     return ""
   }
   return trim(to_string(value))
 }
 
-fn __err(code, message) {
+fn __err(code: any, message: any) {
   return Err({code: code, message: message, provider: CONFLUENCE_PROVIDER_ID})
 }
 
-fn __reject(status, code, message) {
+fn __reject(status: any, code: any, message: any) {
   return {type: "reject", reject: {status: status, code: code, message: message}}
 }
