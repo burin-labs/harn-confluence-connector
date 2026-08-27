@@ -21,7 +21,7 @@ pub fn assert_confluence_interface(harness: Harness) {
 }
 
 /** Build a representative Confluence Cloud page webhook body. */
-pub fn confluence_page_webhook_body(event = "page_created") {
+pub fn confluence_page_webhook_body(event: any = "page_created") {
   return json_stringify(
     {
       timestamp: 1471926079631,
