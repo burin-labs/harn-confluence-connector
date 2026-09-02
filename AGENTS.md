@@ -18,6 +18,20 @@ provider-specific notes and local hazards here.
 - Treat page-to-PDF export as unsupported until Atlassian documents a Cloud
   REST endpoint; do not call private UI endpoints.
 
+## Pull request titles
+
+Use `[Area] Sentence case`. The area is one of `Connector`, `CI`, or `Docs`.
+
+- `[Connector] Reject webhook deliveries with a stale timestamp`
+- `[CI] Repin the shared Harn package workflow`
+- `[Docs] Describe the poll cursor contract`
+
+Keep the title on one line, under about 70 characters. Say what changed, not
+which files moved. Capitalize the first word after the bracket and leave the
+rest in sentence case.
+
+`CONTRIBUTING.md` states the contribution policy for this repository.
+
 <!-- BEGIN HARN SHARED AGENT CONTRACT: managed by harn-bump-fleet -->
 
 ## Ecosystem working agreement
