@@ -1,10 +1,10 @@
 import { init, normalize_inbound, shutdown } from "../src/lib"
-import { expect, expect_eq } from "./assertions"
+import { expect, expect_eq } from "../testdata/assertions"
 import {
   assert_confluence_interface,
   confluence_jwt_headers,
   confluence_page_webhook_body,
-} from "./helpers"
+} from "../testdata/helpers"
 
 pipeline test_normalize_smoke(harness: Harness) {
   assert_confluence_interface(harness)
